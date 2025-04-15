@@ -51,8 +51,9 @@ ${message}
   // 🚀 Skicka!
   try {
     await transporter.sendMail(mailOptions);
+    console.log('✅ E-post skickad');
   } catch (err) {
-    console.error('E-postfel:', err); // exakt fel i Railway-loggen
+    console.error('❌ Misslyckades skicka e-post:', err); // <-- detta visar exakt Gmail/Nodemailer-fel
     throw new Error('Failed to send email.');
   }
 }
