@@ -49,7 +49,12 @@ ${message}
   };
 
   // 🚀 Skicka!
-  await transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (err) {
+    console.error('E-postfel:', err); // exakt fel i Railway-loggen
+    throw new Error('Failed to send email.');
+  }
 }
 
 module.exports = sendMail;
