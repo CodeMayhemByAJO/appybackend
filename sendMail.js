@@ -1,11 +1,6 @@
 const nodemailer = require('nodemailer');
 
-async function sendMail({ name, email, phone, message, website }) {
-  // 🐝 Honeypot – stoppa bottar direkt
-  if (website && website.trim() !== '') {
-    throw new Error('Bot detected via honeypot field');
-  }
-
+async function sendMail({ name, email, phone, message }) {
   // 👮 Grundläggande validering av obligatoriska fält
   if (!name || !email || !message) {
     throw new Error('Obligatoriska fält saknas');
