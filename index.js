@@ -85,7 +85,7 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
         {
           role: 'assistant',
           content:
-            'Det beror på omfattningen – hör av dig så kollar jag (Andreas) på en lösning och vad det kostar! 😉',
+            'Det beror på omfattningen – hör av dig så får Andreas kolla närmare på en lösning och vad det kan tänkas kosta! 😉',
         },
 
         // ── 5) FEW-SHOT: fotografering ──
@@ -135,6 +135,7 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
           content:
             'Jag har fått hjälpa ett antal lokala hjältar på deras digitaliseringsresor – hoppas att jag får hjälpa dig också! 😉',
         },
+        { role: 'user', content: message },
       ],
     });
 
