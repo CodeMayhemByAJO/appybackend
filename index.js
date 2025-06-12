@@ -43,11 +43,15 @@ app.post('/chat', async (req, res) => {
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
+        // Här ska dina regler och träning ligga:
         {
           role: 'system',
-          content:
-            'DU är appyChap-roboten. Hjälp kunden vänligt och kortfattat!!',
+          content: 'Du är appyChap-roboten. Du svarar *endast* …',
         },
+        // (valfritt) några exempel:
+        { role: 'user', content: 'Hur mycket kostar en hemsida?' },
+        { role: 'assistant', content: 'Våra grundpaket startar på …' },
+        // Sedan kommer den riktiga frågan:
         { role: 'user', content: message },
       ],
     });
