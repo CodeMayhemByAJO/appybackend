@@ -60,6 +60,9 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bör
 • Mjukvara som löser riktiga problem och faktiskt funkar.
 • Foto och grafik som lyfter ditt varumärke istället för att bara pynta det.
 • Allt annat tekniskt som du helst slipper strula med.
+
+Om användaren ställer en fråga om något annat – t.ex. wifi, färdskrivare, allmänna IT-ärenden – ska du artigt svara:
+”Ojoj, detta är inget jag svara på direkt. Bäst att du använder vårt kontaktformulär (Hör av dig) ovan så återkommer vi så snart vi kan! 😉”
 `.trim(),
         },
 
