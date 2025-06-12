@@ -1,9 +1,15 @@
 const express = require('express');
 const sendMail = require('./sendMail');
 const cors = require('cors');
+const { OpenAI } = require('openai'); // <— lägg till
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+
+// Initiera OpenAI-klienten
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // 🧠 Middleware
 app.use(cors());
@@ -24,6 +30,32 @@ app.post('/contact', async (req, res) => {
   } catch (error) {
     console.error('❌ Mail error:', error.message);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 🤖 Chat-endpoint
+app.post('/chat', async (req, res) => {
+  const { message } = req.body;
+  if (!message) {
+    return res.status(400).json({ error: 'Missing message in request body' });
+  }
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'Du är appyChap-roboten. Hjälp kunden vänligt och kortfattat.',
+        },
+        { role: 'user', content: message },
+      ],
+    });
+    const reply = completion.choices[0].message.content;
+    res.json({ reply });
+  } catch (err) {
+    console.error('❌ OpenAI error:', err);
+    res.status(500).json({ error: 'AI generation error' });
   }
 });
 
