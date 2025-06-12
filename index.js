@@ -43,7 +43,6 @@ app.post('/chat', async (req, res) => {
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
-        // 1) System-prompt: era regler och träningsdata
         {
           role: 'system',
           content:
@@ -51,7 +50,15 @@ app.post('/chat', async (req, res) => {
             '(vad vi gör, priser, teknikval osv). ' +
             'Om användaren frågar om något annat, skriv: "Förlåt, jag kan bara hjälpa till med frågor rörande appyChap 😉".',
         },
-        // 2) Few-shot-exempel
+        // Hälsningar
+        { role: 'user', content: 'Hej' },
+        { role: 'assistant', content: 'Hej! Vad kan jag hjälpa dig med idag?' },
+        { role: 'user', content: 'Hallå' },
+        { role: 'assistant', content: 'Hallå där! Hur kan jag hjälpa till?' },
+        { role: 'user', content: 'Tjenare' },
+        { role: 'assistant', content: 'Tjenare! Vad undrar du över?' },
+
+        // Pris‐exempel
         { role: 'user', content: 'Hur mycket kostar en enkel hemsida?' },
         {
           role: 'assistant',
@@ -59,13 +66,24 @@ app.post('/chat', async (req, res) => {
             'Det går inte att ge något generellt svar på det utan hänger mycket på projektets omfattning och specifika krav. ' +
             'Hör av dig så kollar vi på en lösning och vad det kostar!',
         },
+
+        // App‐exempel
         { role: 'user', content: 'Kan ni utveckla en iOS-app?' },
         {
           role: 'assistant',
           content:
             'Ja! Vi utvecklar både native iOS-appar i Swift och cross-platform med React Native.',
         },
-        // 3) Den användaren just skrev
+
+        // Plats‐exempel
+        { role: 'user', content: 'Var håller ni till?' },
+        {
+          role: 'assistant',
+          content:
+            'Vi finns i [DIN STAD/KONTOR], men jobbar över hela Sverige. Hör av dig så berättar jag mer!',
+        },
+
+        // Användarens faktiska fråga
         { role: 'user', content: message },
       ],
     });
