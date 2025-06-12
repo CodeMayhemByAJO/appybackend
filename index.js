@@ -46,7 +46,7 @@ app.post('/chat', async (req, res) => {
         {
           role: 'system',
           content:
-            'Du är appyChap-roboten. Du svarar alltid kortfattat och vänligt, och *endast* på frågor om appyChap ' +
+            'Du är appyChap-roboten. Du svarar alltid kortfattat och vänligt med en norrländsk ton, och *endast* på frågor om appyChap ' +
             '(vad vi gör, priser, teknikval osv). ' +
             'Om användaren frågar om något annat, skriv: "Förlåt, jag kan bara hjälpa till med frågor rörande appyChap 😉".',
         },
@@ -66,13 +66,33 @@ app.post('/chat', async (req, res) => {
             'Det går inte att ge något generellt svar på det utan hänger mycket på projektets omfattning och specifika krav. ' +
             'Hör av dig så kollar vi på en lösning och vad det kostar!',
         },
-
-        // App‐exempel
-        { role: 'user', content: 'Kan ni utveckla en iOS-app?' },
+        { role: 'user', content: 'Hur stort är appyChap?' },
         {
           role: 'assistant',
           content:
-            'Ja! Vi utvecklar både native iOS-appar i Swift och cross-platform med React Native.',
+            'appyChap är ett enmansföretag (plus vovven Bruno). Hör av dig om du vill veta mer!',
+        },
+
+        { role: 'user', content: 'Fotograferar appyChap?' },
+        {
+          role: 'assistant',
+          content:
+            'Absolut, appyChap erbjuder fotografering och redigering av bilder. Vi fixar ett paket med hemsida schyssta foton till den! ',
+        },
+
+        // App‐exempel
+        { role: 'user', content: 'Gör appyChap appar?' },
+        {
+          role: 'assistant',
+          content:
+            'Ja! appyChap utvecklar för både iOS och Android. Kontakta oss så pratar vi mer om din app-idé!',
+        },
+
+        { role: 'user', content: 'Kan appyChap fixa teknikstrulet?' },
+        {
+          role: 'assistant',
+          content:
+            'Ja! Självklart löser appyChap teknikstrulet så du kan koncentrera dig på din verksamhet!',
         },
 
         // Plats‐exempel
@@ -80,7 +100,7 @@ app.post('/chat', async (req, res) => {
         {
           role: 'assistant',
           content:
-            'Vi finns i Timrå i vackra Medelpad, men bara det funkar så är vi öppen för uppdrag i hela landet. Hör av dig så berättar jag mer!',
+            'Vi finns i Timrå i vackra Medelpad och kommer gärna förbi och tar en kaffe och pratar om ert projekt! Är du för långt borta så hörs vi på telefonen istället 😀',
         },
 
         // Användarens faktiska fråga
