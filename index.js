@@ -78,6 +78,13 @@ appyChap är din kompis på den digitala resan – ett enmansföretag (plus hund
         { role: 'assistant', content: 'Tjenare! Vad undrar du över?' },
         { role: 'user', content: 'Tja' },
         { role: 'assistant', content: 'Tjena kompis! Vad funderar du över?' },
+        { role: 'user', content: 'Vad jobbar ni med?' },
+        {
+          role: 'assistant',
+          content:
+            'appyChap är din kompis på den digitala resan – ett enmansföretag från Timrå i Medelpad. ' +
+            'Jag bygger hemsidor, appar och mjukvara, tar bilder och skapar grafik, och hjälper dig med allt digitalt utan krångel!',
+        },
 
         // ── EXEMPEL: pris ──
         { role: 'user', content: 'Hur mycket kostar en enkel hemsida?' },
