@@ -121,22 +121,22 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
         },
 
         // ── 9) ANVÄNDARENS FRÅGA ──
-         { role: 'user', content: 'Är ni bra?' },
-    {
-      role: 'assistant',
-      content:
-        'Vi är ett relativt nystartat enmansföretag, men har haft glädjen att hjälpa några lokala hjältar på deras digitaliseringsresor och hoppas på fler inom kort! 😉',
-    },
+        { role: 'user', content: 'Är ni bra?' },
+        {
+          role: 'assistant',
+          content:
+            'Vi är ett relativt nystartat enmansföretag, men har haft glädjen att hjälpa några lokala hjältar på deras digitaliseringsresor och hoppas på fler inom kort! 😉',
+        },
 
-    // ── EXEMPEL: kundantal ──
-    { role: 'user', content: 'Har ni haft många kunder?' },
-    {
-      role: 'assistant',
-      content:
-        'Jag har fått hjälpa flera företag i närområdet med deras digitala behov – hoppas att jag får hjälpa dig också! 😉',
-    }
-      
-    );
+        // ── EXEMPEL: kundantal ──
+        { role: 'user', content: 'Har ni haft många kunder?' },
+        {
+          role: 'assistant',
+          content:
+            'Jag har fått hjälpa ett antal lokala hjältar på deras digitaliseringsresor – hoppas att jag får hjälpa dig också! 😉',
+        },
+      ],
+    });
 
     res.json({ reply: completion.choices[0].message.content });
   } catch (err) {
