@@ -24,27 +24,27 @@ async function sendMail({ name, email, phone, message }) {
   const mailOptions = {
     from: `"${name}" <${email}>`,
     to: process.env.EMAIL_USER,
-    subject: 'Nytt meddelande från kontaktformuläret på appyChap.se',
+    subject: 'Ny behovsanalys från appyBot på appyChap.se',
 
     text: `
-Du har fått ett nytt meddelande via kontaktformuläret:
+Du har fått en ny behovsanalys via appyBot:
 
 Namn: ${name}
 E-post: ${email}
 Telefon: ${phone || 'Ej angivet'}
 
-Meddelande:
+Analys:
 ${message}
     `,
 
     html: `
-      <p><strong>Du har fått ett nytt meddelande via kontaktformuläret:</strong></p>
+      <p><strong>Du har fått en ny behovsanalys via appyBot:</strong></p>
       <p><strong>Namn:</strong> ${name}</p>
       <p><strong>E-post:</strong> <a href="mailto:${email}">${email}</a></p>
       <p><strong>Telefon:</strong> ${
         phone ? `<a href="tel:${phone}">${phone}</a>` : 'Ej angivet'
       }</p>
-      <p><strong>Meddelande:</strong><br>${message.replace(/\n/g, '<br>')}</p>
+      <p><strong>Analys:</strong><br>${message.replace(/\n/g, '<br>')}</p>
     `,
   };
 
