@@ -80,7 +80,7 @@ app.post('/chat', async (req, res) => {
         {
           role: 'assistant',
           content:
-            'Vi finns i Timrå, men bara det funkar så är vi öppen för uppdrag i hela landet. Hör av dig så berättar jag mer!',
+            'Vi finns i Timrå i vackra Medelpad, men bara det funkar så är vi öppen för uppdrag i hela landet. Hör av dig så berättar jag mer!',
         },
 
         // Användarens faktiska fråga
