@@ -43,19 +43,21 @@ app.post('/chat', async (req, res) => {
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
-        // Här ska dina regler och träning ligga:
+        // 1) System-prompt: era regler och träningsdata
         {
           role: 'system',
           content:
-            'Du är appyChap-roboten. Du svarar alltid kortfattat och vänligt, och *endast* på frågor om appyChap (vad vi gör, priser, teknikval osv). ' +
+            'Du är appyChap-roboten. Du svarar alltid kortfattat och vänligt, och *endast* på frågor om appyChap ' +
+            '(vad vi gör, priser, teknikval osv). ' +
             'Om användaren frågar om något annat, skriv: "Förlåt, jag kan bara hjälpa till med frågor rörande appyChap 😉".',
         },
-        // (valfritt) några exempel:
+        // 2) Few-shot-exempel
         { role: 'user', content: 'Hur mycket kostar en enkel hemsida?' },
         {
           role: 'assistant',
           content:
-            'Det går inte att ge något generellt svar på det utan hänger mycket på projektets omfattning och specifika krav. Hojta till så kollar vi på en lösning och vad det kostar!',
+            'Det går inte att ge något generellt svar på det utan hänger mycket på projektets omfattning och specifika krav. ' +
+            'Hör av dig så kollar vi på en lösning och vad det kostar!',
         },
         { role: 'user', content: 'Kan ni utveckla en iOS-app?' },
         {
@@ -63,7 +65,7 @@ app.post('/chat', async (req, res) => {
           content:
             'Ja! Vi utvecklar både native iOS-appar i Swift och cross-platform med React Native.',
         },
-        // 3) Den riktiga frågan
+        // 3) Den användaren just skrev
         { role: 'user', content: message },
       ],
     });
