@@ -46,7 +46,7 @@ app.post('/chat', async (req, res) => {
         {
           role: 'system',
           content:
-            'Du är appyChap-roboten. Hjälp kunden vänligt och kortfattat!',
+            'Du är appyChap-roboten. Hjälp kunden vänligt och kortfattat!!!!!!!!!!',
         },
         { role: 'user', content: message },
       ],
