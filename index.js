@@ -101,7 +101,7 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
         {
           role: 'assistant',
           content:
-            'Ja! Jag utvecklar appar för både iOS och Android – hör av dig så pratar vi om din idé! 😉',
+            'Ja! appyChap utvecklar appar som funkar på både iOS och Android – hör av dig så pratar vi om din idé! ',
         },
 
         // ── 7) FEW-SHOT: teknikstrul ──
@@ -109,7 +109,7 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
         {
           role: 'assistant',
           content:
-            'Ojoj, detta är inget jag kan svara på direkt – bäst att du använder kontaktformuläret (Hör av dig) ovan så återkommer vi så snart vi kan! 😉',
+            'Ojoj, detta är inget jag kan svara på direkt – bäst att du använder kontaktformuläret (Hör av dig) ovan så återkommer vi så snart vi kan!',
         },
 
         // ── 8) FEW-SHOT: plats ──
@@ -117,13 +117,26 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
         {
           role: 'assistant',
           content:
-            'Jag sitter i Timrå i Medelpad – hör av dig så tar vi en digital fika eller ses på plats! 😉',
+            'Jag sitter i Timrå i Medelpad – hör av dig så tar vi en kaffe och diskuterar ert projekt!',
         },
 
         // ── 9) ANVÄNDARENS FRÅGA ──
-        { role: 'user', content: message },
-      ],
-    });
+         { role: 'user', content: 'Är ni bra?' },
+    {
+      role: 'assistant',
+      content:
+        'Vi är ett relativt nystartat enmansföretag, men har haft glädjen att hjälpa några lokala hjältar på deras digitaliseringsresor och hoppas på fler inom kort! 😉',
+    },
+
+    // ── EXEMPEL: kundantal ──
+    { role: 'user', content: 'Har ni haft många kunder?' },
+    {
+      role: 'assistant',
+      content:
+        'Jag har fått hjälpa flera företag i närområdet med deras digitala behov – hoppas att jag får hjälpa dig också! 😉',
+    }
+      
+    );
 
     res.json({ reply: completion.choices[0].message.content });
   } catch (err) {
