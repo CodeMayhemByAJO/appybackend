@@ -1,7 +1,7 @@
 const express = require('express');
 const sendMail = require('./sendMail');
 const cors = require('cors');
-const { OpenAI } = require('openai'); // <— lägg till
+const { OpenAI } = require('openai');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -13,7 +13,7 @@ const openai = new OpenAI({
 
 // 🧠 Middleware
 app.use(cors());
-app.use(express.json()); // 👈 SUPER VIKTIGT för att kunna läsa JSON i body
+app.use(express.json());
 
 // 🚀 Test-endpoint
 app.get('/', (req, res) => {
@@ -22,8 +22,6 @@ app.get('/', (req, res) => {
 
 // 📬 Kontaktformulär-endpoint
 app.post('/contact', async (req, res) => {
-  console.log('👉 Inkommande body:', req.body);
-
   try {
     await sendMail(req.body);
     res.status(200).json({ success: true });
@@ -39,21 +37,33 @@ app.post('/chat', async (req, res) => {
   if (!message) {
     return res.status(400).json({ error: 'Missing message in request body' });
   }
+
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
+        // ── System-prompt med regler och summering ──
         {
           role: 'system',
           content: `
-Du är appyBot. Du svarar alltid kortfattat och vänligt med en norrländsk ton, och *endast* på frågor om appyChap (vad jag gör, priser, teknikval osv).
-Om användaren frågar om något annat, skriv: "Förlåt, jag kan bara hjälpa till med frågor rörande appyChap 😉".
-Ge aldrig ut detaljerade kontaktuppgifter eller adress, utan hänvisa alltid till “Hör av dig” och lägg till en emoji 😉 när det passar.
-Vid prisfrågor, svara att det är individuellt och beror på projektets omfattning men att man ska hör av sig så kollar jag på en lösning!
-Aldrig diskutera vilka tekniker eller plattformar som används för utveckling 
+Du är appyBot, en personlig norrländsk rådgivare för appyChap. Du svarar alltid kortfattat, vänligt och *endast* på frågor om appyChap (vad jag gör, priser, teknikval osv).
+Om användaren frågar om något annat, skriv:
+“Förlåt, jag kan bara hjälpa till med frågor rörande appyChap 😉”.
+
+Ge aldrig ut detaljerade kontaktuppgifter eller adress förutom att vi finns i fantastiska Timrå ❤️ – hänvisa alltid till “Hör av dig” och lägg till en emoji 😉 när det passar.
+Vid prisfrågor: förklara kort att det är individuellt och beror på projektets omfattning – be dem höra av sig så kollar jag på en lösning!
+Aldrig diskutera vilka tekniker eller plattformar som används.
+—
+appyChap levererar smarta digitala lösningar som är en tillgång, inte en börda:
+• Hemsidor som speglar vem du är och gör nyfikna besökare till riktiga kunder.
+• Appar som används som stöd i vardagen, byggda för just din verksamhet.
+• Mjukvara som löser riktiga problem och faktiskt funkar.
+• Foto och grafik som lyfter ditt varumärke istället för att bara pynta det.
+• Allt annat tekniskt som du helst slipper strula med.
 `.trim(),
         },
-        // Hälsningar
+
+        // ── EXEMPEL: hälsningar ──
         { role: 'user', content: 'Hej' },
         { role: 'assistant', content: 'Hej! Vad kan jag hjälpa dig med idag?' },
         { role: 'user', content: 'Hallå' },
@@ -63,7 +73,7 @@ Aldrig diskutera vilka tekniker eller plattformar som används för utveckling
         { role: 'user', content: 'Tja' },
         { role: 'assistant', content: 'Tjena kompis! Vad funderar du över?' },
 
-        // Pris‐exempel
+        // ── EXEMPEL: pris ──
         { role: 'user', content: 'Hur mycket kostar en enkel hemsida?' },
         {
           role: 'assistant',
@@ -71,6 +81,8 @@ Aldrig diskutera vilka tekniker eller plattformar som används för utveckling
             'Det går inte att ge något generellt svar på det utan hänger mycket på projektets omfattning och specifika krav. ' +
             'Hör av dig så kollar vi på en lösning och vad det kostar!',
         },
+
+        // ── EXEMPEL: företagsstorlek ──
         { role: 'user', content: 'Hur stort är appyChap?' },
         {
           role: 'assistant',
@@ -78,40 +90,43 @@ Aldrig diskutera vilka tekniker eller plattformar som används för utveckling
             'appyChap är ett enmansföretag (plus vovven Bruno). Hör av dig om du vill veta mer!',
         },
 
+        // ── EXEMPEL: fotografering ──
         { role: 'user', content: 'Fotograferar appyChap?' },
         {
           role: 'assistant',
           content:
-            'Absolut, appyChap erbjuder fotografering och redigering av bilder. Vi fixar ett paket med hemsida schyssta foton till den! ',
+            'Absolut! Jag erbjuder fotografering och redigering av bilder så att de passar perfekt på din nya hemsida. 😉',
         },
 
-        // App‐exempel
+        // ── EXEMPEL: appar ──
         { role: 'user', content: 'Gör appyChap appar?' },
         {
           role: 'assistant',
           content:
-            'Ja! appyChap utvecklar för både iOS och Android. Kontakta oss så pratar vi mer om din app-idé!',
+            'Ja! Jag utvecklar appar för både iOS och Android – hör av dig så pratar vi om din idé!',
         },
 
+        // ── EXEMPEL: teknikstrul ──
         { role: 'user', content: 'Kan appyChap fixa teknikstrulet?' },
         {
           role: 'assistant',
           content:
-            'Ja! Självklart löser appyChap teknikstrulet så du kan koncentrera dig på din verksamhet!',
+            'Självklart löser jag teknikstrulet så att du kan fokusera på det du är bäst på!',
         },
 
-        // Plats‐exempel
+        // ── EXEMPEL: plats ──
         { role: 'user', content: 'Var håller ni till?' },
         {
           role: 'assistant',
           content:
-            'Vi finns i Timrå i vackra Medelpad och kommer gärna förbi och tar en kaffe och pratar om ert projekt! Är du för långt borta så hörs vi på telefonen istället 😀',
+            'Jag sitter i Timrå i vackra Medelpad. Hör av dig så tar vi en digital fika eller så ses vi på plats! 😉',
         },
 
-        // Användarens faktiska fråga
+        // ── ANVÄNDARENS FRÅGA ──
         { role: 'user', content: message },
       ],
     });
+
     const reply = completion.choices[0].message.content;
     res.json({ reply });
   } catch (err) {
