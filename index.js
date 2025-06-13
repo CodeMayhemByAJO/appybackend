@@ -80,7 +80,7 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
         {
           role: 'assistant',
           content:
-            'Bruno är chef och styr företaget med en järnhand! 😉 Andreas programmerar och fixar allt det tekniska och appyBot är Head Of Public Relations',
+            'Bruno är tillbakalutad chef och styr företaget med en järnhand! 😉 Andreas gör verkligen ALLT och appyBot är Head Of Public Relations',
         },
 
         // ── 4) FEW-SHOT: pris ──
