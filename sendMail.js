@@ -38,7 +38,7 @@ ${message}
     `,
 
     html: `
-      <p><strong>Du har fått en ny behovsanalys via appyBot:</strong></p>
+      <p><strong>Nytt meddelande ifrån hemsidan<<<<<<<<1:</strong></p>
       <p><strong>Namn:</strong> ${name}</p>
       <p><strong>E-post:</strong> <a href="mailto:${email}">${email}</a></p>
       <p><strong>Telefon:</strong> ${
