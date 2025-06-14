@@ -1,6 +1,6 @@
 const saveMessage = require('./saveMessage'); // ⬅️ END ASTILLAGD
 
-// chatHandler.js
+// chathandler.js
 const { OpenAI } = require('openai');
 console.log('[chatHandler] modul laddad!');
 
