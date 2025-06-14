@@ -1,12 +1,15 @@
-console.log('chatHandler kör');
-
+// chatHandler.js
 const { OpenAI } = require('openai');
+console.log('[chatHandler] modul laddad!');
 
+// Initiera OpenAI-klienten en gång, UTANFÖR funktionen
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 module.exports = async function chatHandler(req, res) {
+  console.log('[chatHandler] ny request:', req.method, req.path, req.body);
+
   const { message } = req.body;
   if (!message) {
     return res.status(400).json({ error: 'Missing message in request body' });
