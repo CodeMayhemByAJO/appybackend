@@ -125,7 +125,7 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
 
     const botResponse = completion.choices[0].message.content;
 
-    // spara till databasen
+    // sparar till databasen
     await saveMessage({
       sessionId: sessionId || 'unknown-session',
       userMessage: message,
