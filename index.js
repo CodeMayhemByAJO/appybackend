@@ -5,6 +5,9 @@ const cors = require('cors');
 const chatHandler = require('./chatHandler');
 const app = express();
 const PORT = process.env.PORT || 8080;
+const exportChats = require('./exportChats');
+
+app.get('/export-chats', exportChats);
 
 // middleware
 app.use(cors());
