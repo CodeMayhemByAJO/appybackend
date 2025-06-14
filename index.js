@@ -6,11 +6,11 @@ const chatHandler = require('./chatHandler');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// 🧠 Middleware
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// 🚀 Test-endpoint
+// Test-endpoint
 app.get('/', (req, res) => {
   res.send('Backend is running 🚀');
 });
@@ -26,7 +26,7 @@ app.post('/contact', async (req, res) => {
   }
 });
 
-// 🤖 Chat-endpoint – nu delegerar vi till chatHandler.js
+// Chat-endpoint
 app.post('/chat', chatHandler);
 
 // Starta servern

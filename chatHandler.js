@@ -1,12 +1,19 @@
-// chathandler.js
-const { OpenAI } = require('openai');
+const saveMessage = require('./saveMessage'); // ⬅️ END ASTILLAGD
 
+// chatHandler.js
+const { OpenAI } = require('openai');
+console.log('[chatHandler] modul laddad!');
+
+// Initiera OpenAI-klienten en gång, UTANFÖR funktionen
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 module.exports = async function chatHandler(req, res) {
-  const { message } = req.body;
+  console.log('[chatHandler] ny request:', req.method, req.path, req.body);
+
+  const { message, sessionId } = req.body; // ⬅️ lade till sessionId
+
   if (!message) {
     return res.status(400).json({ error: 'Missing message in request body' });
   }
@@ -116,7 +123,16 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
       ],
     });
 
-    res.json({ reply: completion.choices[0].message.content });
+    const botResponse = completion.choices[0].message.content;
+
+    // spara till databasen
+    await saveMessage({
+      sessionId: sessionId || 'unknown-session',
+      userMessage: message,
+      botResponse,
+    });
+
+    res.json({ reply: botResponse });
   } catch (err) {
     console.error('❌ OpenAI error:', err);
     res.status(500).json({ error: 'AI generation error' });
