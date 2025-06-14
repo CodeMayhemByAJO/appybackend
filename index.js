@@ -6,6 +6,9 @@ const chatHandler = require('./chatHandler');
 const app = express();
 const PORT = process.env.PORT || 8080;
 const exportChats = require('./exportChats');
+const deleteChats = require('./deleteChats');
+
+app.delete('/delete-chats', deleteChats);
 
 app.get('/export-chats', exportChats);
 
