@@ -12,7 +12,7 @@ const openai = new OpenAI({
 module.exports = async function chatHandler(req, res) {
   console.log('[chatHandler] ny request:', req.method, req.path, req.body);
 
-  const { message, sessionId } = req.body; // ⬅️ lade till sessionId
+  const { message } = req.body;
 
   if (!message) {
     return res.status(400).json({ error: 'Missing message in request body' });
@@ -127,9 +127,9 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
 
     // sparar till databasen
     await saveMessage({
-      sessionId: sessionId || 'unknown-session',
-      userMessage: message,
-      botResponse,
+      content: message,
+      user_message: message,
+      bot_response: botResponse,
     });
 
     res.json({ reply: botResponse });
