@@ -7,9 +7,6 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const exportChats = require('./exportChats');
 const deleteChats = require('./deleteChats');
-const manualChatLogger = require('./manualChatLogger');
-
-app.post('/log', manualChatLogger);
 
 app.delete('/delete-chats', deleteChats);
 
