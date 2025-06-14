@@ -1,7 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const sendMail = require('./sendMail');
 const cors = require('cors');
-const chatHandler = require('/chatHandler');
+const chatHandler = require('./chatHandler');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
