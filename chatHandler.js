@@ -1,4 +1,5 @@
-// chathandler.js
+console.log('chatHandler kör');
+
 const { OpenAI } = require('openai');
 
 const openai = new OpenAI({
