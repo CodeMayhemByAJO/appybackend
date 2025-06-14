@@ -6,7 +6,7 @@ const chatHandler = require('./chatHandler');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Middleware
+// middleware
 app.use(cors());
 app.use(express.json());
 
