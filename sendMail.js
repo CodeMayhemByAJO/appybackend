@@ -20,14 +20,18 @@ async function sendMail({ name, email, phone, message }) {
     },
   });
 
+  // Bestäm ämnesrad baserat på om det är en behovsanalys eller vanligt kontakt-mail
+  const subject = message.startsWith('Behovsanalys från appyBot:')
+    ? 'Ny behovsanalys från appyBot på appyChap.se'
+    : 'Nytt meddelande från kontaktformuläret på appyChap.se';
+
   // 📬 Mailinnehåll
   const mailOptions = {
     from: `"${name}" <${email}>`,
     to: process.env.EMAIL_USER,
-    subject: 'Nytt meddelande från kontaktformuläret på appyChap.se',
-
+    subject, // <-- dynamiskt ämne
     text: `
-Du har fått ett nytt meddelande via kontaktformuläret:
+Du har fått ett nytt meddelande:
 
 Namn: ${name}
 E-post: ${email}
@@ -36,15 +40,18 @@ Telefon: ${phone || 'Ej angivet'}
 Meddelande:
 ${message}
     `,
-
     html: `
-      <p><strong>Du har fått ett nytt meddelande via kontaktformuläret:</strong></p>
+      <p><strong>Du har fått ett nytt meddelande:</strong></p>
       <p><strong>Namn:</strong> ${name}</p>
       <p><strong>E-post:</strong> <a href="mailto:${email}">${email}</a></p>
       <p><strong>Telefon:</strong> ${
         phone ? `<a href="tel:${phone}">${phone}</a>` : 'Ej angivet'
       }</p>
-      <p><strong>Meddelande:</strong><br>${message.replace(/\n/g, '<br>')}</p>
+      <hr/>
+      <pre style="white-space: pre-wrap;">${message.replace(
+        /\n/g,
+        '<br>'
+      )}</pre>
     `,
   };
 
@@ -53,7 +60,7 @@ ${message}
     await transporter.sendMail(mailOptions);
     console.log('✅ E-post skickad');
   } catch (err) {
-    console.error('❌ Misslyckades skicka e-post:', err); // <-- detta visar exakt Gmail/Nodemailer-fel
+    console.error('❌ Misslyckades skicka e-post:', err);
     throw new Error('Failed to send email.');
   }
 }
