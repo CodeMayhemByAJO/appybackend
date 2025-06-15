@@ -103,7 +103,7 @@ module.exports = async function chatHandler(req, res) {
   if (isServiceInterest(message)) {
     return res.json({
       reply:
-        'Vad kul att ni är intresserade! Är det okej att jag ställer några frågor om detta? Jag skickar dina svar vidare till Andreas som får kolla närmare och återkomma till dig. Okej?',
+        'Spännande! Är det okej att jag ställer några frågor om detta? Jag skickar dina svar vidare till Andreas som får kolla närmare och återkomma till dig. Okej?',
       triggerNeedsFlow: true,
     });
   }
