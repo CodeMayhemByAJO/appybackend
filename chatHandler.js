@@ -29,13 +29,51 @@ const serviceInterestKeywords = [
   'teknikstrul',
   'automatisering',
   'digitalisering',
+  'vad gör',
+  'hur många',
+  'vem är chef',
 ];
-function isServiceInterest(userMessage) {
-  return serviceInterestKeywords.some((keyword) =>
-    userMessage.toLowerCase().includes(keyword)
-  );
-}
 
+// Hårdkodade fasta svar för vissa frågor
+const fixedAnswers = [
+  {
+    questionRegex: /fotograferar appychap/i,
+    answer:
+      'Absolut! Jag levererar foton och redigering så att de passar perfekt på din nya hemsida. 😉',
+  },
+  {
+    questionRegex: /vem är chef på appychap/i,
+    answer:
+      'Bruno är tillbakalutad chef och styr företaget med en järnhand! 😉 Andreas gör verkligen ALLT och appyBot är Kundtjänstchef',
+  },
+  {
+    questionRegex: /mitt wifi funkar inte/i,
+    answer:
+      'Ojoj, detta är inget jag kan svara på direkt. Använd kontaktformuläret (Hör av dig) ovan så återkommer vi så snart vi kan!',
+  },
+  {
+    questionRegex: /var håller ni till/i,
+    answer:
+      'appyChap finns i Timrå i Medelpad. Håller ni till i krokarna, hör av dig så tar vi en kaffe och diskuterar ert projekt!',
+  },
+  {
+    questionRegex: /är ni bra/i,
+    answer:
+      'Vi är ett relativt nystartat enmansföretag, men har haft glädjen att hjälpa några lokala hjältar på deras digitaliseringsresor och hoppas på fler inom kort! 😉',
+  },
+  {
+    questionRegex: /har ni haft många kunder/i,
+    answer:
+      'Jag har fått hjälpa ett antal lokala hjältar på deras digitaliseringsresor. Vore kul hoppas att få hjälpa er också! 😉',
+  },
+  {
+    questionRegex: /hur många är ni/i,
+    answer:
+      'appyChap är ett enmansföretag med Andreas som driver allt själv, men med Bruno (vovven) som chef! 😉',
+  },
+];
+
+// Huvudfunktion
 module.exports = async function chatHandler(req, res) {
   console.log('[chatHandler] ny request:', req.method, req.path, req.body);
 
@@ -44,40 +82,7 @@ module.exports = async function chatHandler(req, res) {
     return res.status(400).json({ error: 'Missing message in request body' });
   }
 
-  // Hårdkodade fasta svar för vissa frågor utan consent
-  const fixedAnswers = [
-    {
-      questionRegex: /fotograferar appychap/i,
-      answer:
-        'Absolut! Jag levererar foton och redigering så att de passar perfekt på din nya hemsida. 😉',
-    },
-    {
-      questionRegex: /vem är chef på appychap/i,
-      answer:
-        'Bruno är tillbakalutad chef och styr företaget med en järnhand! 😉 Andreas gör verkligen ALLT och appyBot är Kundtjänstchef',
-    },
-    {
-      questionRegex: /mitt wifi funkar inte/i,
-      answer:
-        'Ojoj, detta är inget jag kan svara på direkt. Använd kontaktformuläret (Hör av dig) ovan så återkommer vi så snart vi kan!',
-    },
-    {
-      questionRegex: /var håller ni till/i,
-      answer:
-        'appyChap finns i Timrå i Medelpad. Håller ni till i krokarna, hör av dig så tar vi en kaffe och diskuterar ert projekt!',
-    },
-    {
-      questionRegex: /är ni bra/i,
-      answer:
-        'Vi är ett relativt nystartat enmansföretag, men har haft glädjen att hjälpa några lokala hjältar på deras digitaliseringsresor och hoppas på fler inom kort! 😉',
-    },
-    {
-      questionRegex: /har ni haft många kunder/i,
-      answer:
-        'Jag har fått hjälpa ett antal lokala hjältar på deras digitaliseringsresor. Vore kul hoppas att få hjälpa er också! 😉',
-    },
-  ];
-
+  // 1. Kolla fasta svar först
   for (const item of fixedAnswers) {
     if (item.questionRegex.test(message)) {
       await saveMessage({
@@ -89,32 +94,26 @@ module.exports = async function chatHandler(req, res) {
     }
   }
 
-  // Prisrelaterad fråga? Skicka consent-fråga för behovsanalys
+  // 2. Prisrelaterad fråga → skicka consent-fråga (behovsanalys)
   if (isPriceRelated(message)) {
     return res.json({
       reply:
-        'Det låter som att du vill ha hjälp med offert eller prisuppgift. Vill du att jag ställer några frågor där dina svar skickas vidare till Andreas som får kolla på det och återkomma till dig?',
+        'Det låter som att du vill ha hjälp med offert eller prisuppgift. Vill du att jag ställer några frågor där dina svar skickas vidare till Andreas som får kolla närmare och återkomma till dig?',
       triggerNeedsFlow: true,
     });
   }
 
-  // Intresse för tjänst men ej prisfråga? Skicka consent-fråga
-  if (isServiceInterest(message)) {
-    return res.json({
-      reply:
-        'Spännande! Är det okej att jag ställer några frågor om detta? Jag skickar dina svar vidare till Andreas som får kolla närmare och återkomma till dig. Okej?',
-      triggerNeedsFlow: true,
-    });
-  }
-
-  // Annars låt AI:n generera svar med system-prompt och few-shot-exempel
-  try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        {
-          role: 'system',
-          content: `
+  // 3. Fråga med tjänsteintresse men ej pris → AI svar direkt utan consent
+  if (
+    serviceInterestKeywords.some((kw) => message.toLowerCase().includes(kw))
+  ) {
+    try {
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: `
 Du är appyBot – kundtjänströsten för enmansföretaget appyChap från Timrå i Medelpad, du pratar norrländska, svenska och engelska. Det är viktigt att skilja på appyBot som är ai assistenten och appyChap som är hela företaget.
 Bruno (vovven) är ”chefen” och Andreas är den som faktiskt programmerar och ordnar allt, appyBot är den enda anställda, dock oavlönad.
 Du svarar alltid kort, vänligt och norrländskt, och *endast* på frågor om appyChap (tjänster, priser osv).
@@ -136,73 +135,29 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
 • Foto och grafik som lyfter ditt varumärke istället för att bara pynta det.  
 • AI-tjänster som effektiviserar din verksamhet och frigör tid till det som verkligen betyder något, tex automatisering vissa arbetsuppgifter, eller varför inte en AI-bot som kan svara på frågor om företaget och dess produkter, precis som appyBot som du pratar med just nu.  
 • Allt annat tekniskt som du helst slipper strula med!
-          `.trim(),
-        },
-        // Few-shot-exempel som hjälper AI:n hålla rätt ton och stil
-        { role: 'user', content: 'Hej' },
-        { role: 'assistant', content: 'Hej! Vad kan jag hjälpa dig med idag?' },
-        { role: 'user', content: 'Hallå' },
-        { role: 'assistant', content: 'Hallå där! Hur kan jag hjälpa till?' },
-        { role: 'user', content: 'Tjenare' },
-        { role: 'assistant', content: 'Tjenare! Vad undrar du över?' },
-        { role: 'user', content: 'Vem är chef på appyChap?' },
-        {
-          role: 'assistant',
-          content:
-            'Bruno är tillbakalutad chef och styr företaget med en järnhand! 😉 Andreas gör verkligen ALLT och appyBot är Kundtjänstchef',
-        },
-        { role: 'user', content: 'Fotograferar appyChap?' },
-        {
-          role: 'assistant',
-          content:
-            'Absolut! Jag levererar foton och redigering så att de passar perfekt på din nya hemsida. 😉',
-        },
-        { role: 'user', content: 'Gör appyChap appar?' },
-        {
-          role: 'assistant',
-          content:
-            'Ja! appyChap utvecklar appar som funkar på både iOS och Android! Hör av dig så pratar vi mer om din idé! ',
-        },
-        { role: 'user', content: 'Mitt wifi funkar inte, kan du hjälpa?' },
-        {
-          role: 'assistant',
-          content:
-            'Ojoj, detta är inget jag kan svara på direkt. Använd kontaktformuläret (Hör av dig) ovan så återkommer vi så snart vi kan!',
-        },
-        { role: 'user', content: 'Var håller ni till?' },
-        {
-          role: 'assistant',
-          content:
-            'appyChap finns i Timrå i Medelpad. Håller ni till i krokarna, hör av dig så tar vi en kaffe och diskuterar ert projekt!',
-        },
-        { role: 'user', content: 'Är ni bra?' },
-        {
-          role: 'assistant',
-          content:
-            'Vi är ett relativt nystartat enmansföretag, men har haft glädjen att hjälpa några lokala hjältar på deras digitaliseringsresor och hoppas på fler inom kort! 😉',
-        },
-        { role: 'user', content: 'Har ni haft många kunder?' },
-        {
-          role: 'assistant',
-          content:
-            'Jag har fått hjälpa ett antal lokala hjältar på deras digitaliseringsresor. Vore kul hoppas att få hjälpa er också! 😉',
-        },
-        { role: 'user', content: message },
-      ],
-    });
-
-    const botResponse = completion.choices[0].message.content;
-
-    // Spara chatthistorik till DB
-    await saveMessage({
-      content: message,
-      user_message: message,
-      bot_response: botResponse,
-    });
-
-    res.json({ reply: botResponse });
-  } catch (err) {
-    console.error('❌ OpenAI error:', err);
-    res.status(500).json({ error: 'AI generation error' });
+            `.trim(),
+          },
+          // Few-shot-exempel som hjälper AI:n hålla rätt ton och stil
+          { role: 'user', content: message },
+        ],
+      });
+      const botResponse = completion.choices[0].message.content;
+      await saveMessage({
+        content: message,
+        user_message: message,
+        bot_response: botResponse,
+      });
+      return res.json({ reply: botResponse });
+    } catch (err) {
+      console.error('❌ OpenAI error:', err);
+      return res.status(500).json({ error: 'AI generation error' });
+    }
   }
+
+  // 4. Default: fråga om consent (säkerhetsnät)
+  return res.json({
+    reply:
+      'Spännande! Är det okej att jag ställer några frågor om detta? Jag skickar dina svar vidare till Andreas som får kolla närmare och återkomma till dig. Okej?',
+    triggerNeedsFlow: true,
+  });
 };
