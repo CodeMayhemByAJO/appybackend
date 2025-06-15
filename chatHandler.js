@@ -1,5 +1,6 @@
 const saveMessage = require('./saveMessage');
 const { OpenAI } = require('openai');
+
 console.log('[chatHandler] modul laddad!');
 
 const openai = new OpenAI({
@@ -39,7 +40,6 @@ module.exports = async function chatHandler(req, res) {
   console.log('[chatHandler] ny request:', req.method, req.path, req.body);
 
   const { message } = req.body;
-
   if (!message) {
     return res.status(400).json({ error: 'Missing message in request body' });
   }
@@ -80,7 +80,6 @@ module.exports = async function chatHandler(req, res) {
 
   for (const item of fixedAnswers) {
     if (item.questionRegex.test(message)) {
-      // Spara och returnera fasta svaret
       await saveMessage({
         content: message,
         user_message: message,
@@ -95,7 +94,7 @@ module.exports = async function chatHandler(req, res) {
     return res.json({
       reply:
         'Det låter som att du vill ha hjälp med offert eller prisuppgift. Vill du att jag ställer några frågor där dina svar skickas vidare till Andreas som får kolla på det och återkomma till dig?',
-      triggerNeedsFlow: true, // Frontend väntar på JA/NEJ innan första behovsfrågan
+      triggerNeedsFlow: true,
     });
   }
 
@@ -108,7 +107,7 @@ module.exports = async function chatHandler(req, res) {
     });
   }
 
-  // Annars låt AI:n generera svar med few-shot-exempel
+  // Annars låt AI:n generera svar med system-prompt och few-shot-exempel
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
@@ -139,8 +138,7 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
 • Allt annat tekniskt som du helst slipper strula med!
           `.trim(),
         },
-
-        // Few-shot-exempel
+        // Few-shot-exempel som hjälper AI:n hålla rätt ton och stil
         { role: 'user', content: 'Hej' },
         { role: 'assistant', content: 'Hej! Vad kan jag hjälpa dig med idag?' },
         { role: 'user', content: 'Hallå' },
@@ -153,7 +151,6 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
           content:
             'Bruno är tillbakalutad chef och styr företaget med en järnhand! 😉 Andreas gör verkligen ALLT och appyBot är Kundtjänstchef',
         },
-
         { role: 'user', content: 'Fotograferar appyChap?' },
         {
           role: 'assistant',
@@ -190,8 +187,6 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
           content:
             'Jag har fått hjälpa ett antal lokala hjältar på deras digitaliseringsresor. Vore kul hoppas att få hjälpa er också! 😉',
         },
-
-        // Användarens fråga sist
         { role: 'user', content: message },
       ],
     });
