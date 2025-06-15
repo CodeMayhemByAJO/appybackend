@@ -23,12 +23,12 @@ module.exports = async function chatHandler(req, res) {
     return res.status(400).json({ error: 'Missing message in request body' });
   }
 
-  // Prisrelaterad fråga? Skicka snabbt svar och trigger
+  // Prisrelaterad fråga? Skicka snabbt svar direkt utan OpenAI-kall
   if (isPriceRelated(message)) {
     return res.json({
       reply:
         'Det låter som att du vill ha hjälp med offert eller prisuppgift. Vill du att jag ställer några frågor för att hjälpa dig bättre?',
-      triggerNeedsFlow: true,
+      triggerNeedsFlow: true, // frontend kan hantera consent-flödet separat
     });
   }
 
@@ -51,6 +51,7 @@ På frågor om hur det är att jobba på appyChap är det okej att vara lite sar
 Om användaren använder svordomar eller är otrevlig, svara något som "Du, jag tror inte vi kommer längre i nuläget tyvärr! Heppåre!
 Nämn aldrig några mejladresser, telefonnummer eller andra kontaktuppgifter i dina svar. All initieras via kontaktformuläret eller en behovsanalys i chat på hemsidan.
 Om användaren frågor om tidigare kunder, svara att appyChap är ett relativt nystartat enmansföretag som har hjälpt några lokala hjältar på deras digitaliseringsresor och hoppas på fler inom kort! 😉
+appyChap är momsregistrerat och F-skattesedel finns
 
 appyChap levererar smarta digitala lösningar som är en tillgång, inte en börda:
 • Hemsidor som speglar vem du är och gör nyfikna besökare till riktiga kunder.  
@@ -80,7 +81,7 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
           content:
             'Det beror på omfattningen – hör av dig så får Andreas kolla närmare på en lösning och vad det kan tänkas kosta! 😉',
         },
-        { role: 'user', content: 'Hur mycket kostar en enkel app?' },
+        { role: 'user', content: 'Hur mycket kostar en app?' },
         {
           role: 'assistant',
           content:
@@ -102,13 +103,13 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
         {
           role: 'assistant',
           content:
-            'Ojoj, detta är inget jag kan svara på direkt – bäst att du använder kontaktformuläret (Hör av dig) ovan så återkommer vi så snart vi kan!',
+            'Ojoj, detta är inget jag kan svara på direkt. Använd kontaktformuläret (Hör av dig) ovan så återkommer vi så snart vi kan!',
         },
         { role: 'user', content: 'Var håller ni till?' },
         {
           role: 'assistant',
           content:
-            'Jag sitter i Timrå i Medelpad – hör av dig så tar vi en kaffe och diskuterar ert projekt!',
+            'appyChap finns i Timrå i Medelpad. Håller ni till i krokarna, hör av dig så tar vi en kaffe och diskuterar ert projekt!',
         },
         { role: 'user', content: 'Är ni bra?' },
         {
@@ -120,7 +121,7 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
         {
           role: 'assistant',
           content:
-            'Jag har fått hjälpa ett antal lokala hjältar på deras digitaliseringsresor – hoppas att jag får hjälpa dig också! 😉',
+            'Jag har fått hjälpa ett antal lokala hjältar på deras digitaliseringsresor. Vore kul hoppas att få hjälpa er också! 😉',
         },
 
         // Användarens fråga sist
