@@ -7,10 +7,13 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Prisrelaterade nyckelord för snabb identifiering
 const priceKeywords = ['pris', 'kostar', 'offert', 'beställa', 'köpa'];
+function isPriceRelated(userMessage) {
+  return priceKeywords.some((keyword) =>
+    userMessage.toLowerCase().includes(keyword)
+  );
+}
 
-// Tjänsteintresse nyckelord (utöver pris)
 const serviceInterestKeywords = [
   'app',
   'hemsida',
@@ -25,36 +28,12 @@ const serviceInterestKeywords = [
   'automatisering',
   'digitalisering',
 ];
-
-// Kontaktuppgiftsfrågor som ska öppna kontaktformuläret
-const contactInfoKeywords = [
-  'mejladress',
-  'mailadress',
-  'e-post',
-  'telefonnummer',
-  'adress',
-  'kontaktuppgifter',
-];
-
-function isPriceRelated(userMessage) {
-  return priceKeywords.some((keyword) =>
-    userMessage.toLowerCase().includes(keyword)
-  );
-}
-
 function isServiceInterest(userMessage) {
   return serviceInterestKeywords.some((keyword) =>
     userMessage.toLowerCase().includes(keyword)
   );
 }
 
-function isContactInfoRequest(userMessage) {
-  return contactInfoKeywords.some((keyword) =>
-    userMessage.toLowerCase().includes(keyword)
-  );
-}
-
-// Hårdkodade fasta svar för vissa frågor utan consent
 const fixedAnswers = [
   {
     questionRegex: /fotograferar appychap/i,
@@ -87,11 +66,20 @@ const fixedAnswers = [
       'Jag har fått hjälpa ett antal lokala hjältar på deras digitaliseringsresor. Vore kul hoppas att få hjälpa er också! 😉',
   },
   {
-    questionRegex:
-      /hur många är ni|är ni många|är ni enmansföretag|hur stort är appychap|vem jobbar där/i,
+    questionRegex: /hur många (är ni|jobbar)/i,
     answer:
       'appyChap är ett enmansföretag med Andreas som driver allt själv, men med Bruno (vovven) som chef! 😉',
   },
+];
+
+// Förbjudna frågor (kontaktuppgifter m.m.)
+const forbiddenContactQuestions = [
+  /mejladress/i,
+  /mailadress/i,
+  /e-post/i,
+  /kontaktuppgifter/i,
+  /telefonnummer/i,
+  /adress/i,
 ];
 
 module.exports = async function chatHandler(req, res) {
@@ -102,7 +90,16 @@ module.exports = async function chatHandler(req, res) {
     return res.status(400).json({ error: 'Missing message in request body' });
   }
 
-  // Kontrollera fasta svar först
+  // Förbjudna kontaktfrågor → visa kontaktformulär
+  for (const regex of forbiddenContactQuestions) {
+    if (regex.test(message)) {
+      const reply =
+        'Du tar enklast kontakt med oss via kontaktformuläret. Jag kan öppna det åt dig om du vill!';
+      return res.json({ reply, triggerContactForm: true });
+    }
+  }
+
+  // Fasta svar utan consent
   for (const item of fixedAnswers) {
     if (item.questionRegex.test(message)) {
       await saveMessage({
@@ -114,43 +111,25 @@ module.exports = async function chatHandler(req, res) {
     }
   }
 
-  // Kontrollera om det är en fråga om kontaktuppgifter → öppna formuläret
-  if (isContactInfoRequest(message)) {
-    const reply =
-      'Du tar enklast kontakt med oss via kontaktformuläret, jag laddar det åt dig.';
-    await saveMessage({
-      content: message,
-      user_message: message,
-      bot_response: reply,
-    });
-    return res.json({ reply, openContactForm: true });
-  }
-
-  // Prisrelaterad fråga → consent-fråga
+  // Prisrelaterad fråga → consentfråga
   if (isPriceRelated(message)) {
-    const reply =
-      'Det låter som att du vill ha hjälp med offert eller prisuppgift. Vill du att jag ställer några frågor där dina svar skickas vidare till Andreas som får kolla på det och återkomma till dig?';
-    await saveMessage({
-      content: message,
-      user_message: message,
-      bot_response: reply,
+    return res.json({
+      reply:
+        'Det låter som att du vill ha hjälp med offert eller prisuppgift. Vill du att jag ställer några frågor så att Andreas kan hjälpa dig bättre?',
+      triggerNeedsFlow: true,
     });
-    return res.json({ reply, triggerNeedsFlow: true });
   }
 
-  // Intresse för tjänst men ej prisfråga → consent-fråga
+  // Tjänsteintresse men ej pris → consentfråga
   if (isServiceInterest(message)) {
-    const reply =
-      'Spännande! Är det okej att jag ställer några frågor om detta? Jag skickar dina svar vidare till Andreas som får kolla närmare och återkomma till dig. Okej?';
-    await saveMessage({
-      content: message,
-      user_message: message,
-      bot_response: reply,
+    return res.json({
+      reply:
+        'Spännande! Är det okej att jag ställer några frågor om detta? Jag skickar dina svar vidare till Andreas som får kolla närmare och återkomma till dig. Okej?',
+      triggerNeedsFlow: true,
     });
-    return res.json({ reply, triggerNeedsFlow: true });
   }
 
-  // Om inget ovan matchar, använd OpenAI för svar
+  // AI-genererat svar med fulla regler och instruktioner i system-prompt
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
@@ -158,30 +137,43 @@ module.exports = async function chatHandler(req, res) {
         {
           role: 'system',
           content: `
-Du är appyBot – kundtjänströsten för enmansföretaget appyChap från Timrå i Medelpad, du pratar norrländska, svenska och engelska. Det är viktigt att skilja på appyBot som är ai assistenten och appyChap som är hela företaget.
-Bruno (vovven) är ”chefen” och Andreas är den som faktiskt programmerar och ordnar allt, appyBot är den enda anställda, dock oavlönad.
-Du svarar alltid kort, vänligt och norrländskt, och *endast* på frågor om appyChap (tjänster, priser osv).
-Om frågan ligger utanför appyChaps ärenden, säg:
-”Ojoj, detta är inget jag kan svara på direkt – hör av dig via kontaktformuläret ovan så återkommer appyChap så snart som möjligt! 😉”
-appyBot ska ALDRIG svara på frågor om andra företag, privatliv eller andra ämnen som inte rör appyChap. Inte heller om vilka tekniker som används vid utveckling av hemsidor, appar eller mjukvara.
-appyBot ska svara svepande vid tekniska frågor, och inte gå in på detaljer om hur saker fungerar, tex "appyChap använder den senaste tekniken för att bygga hemsidor och appar som hjälper er verksamhet.".
-appyBot ska aldrig diskutera politik, religion eller andra kontroversiella ämnen. Vid såna frågor, svara: "Jag kan bara svara på frågor gällande appyChap och våra tjänster. Om du har frågor om andra ämnen, vänligen kontakta någon bättre lämpad för dessa!".
-På frågor om hur det är att jobba på appyChap är det okej att vara lite sarkastisk som att "det hade ju varit bättre om jag fått en lön också men man kan inte få allt här i livet! 🤷‍♂️".
-Om användaren använder svordomar eller är otrevlig, svara något som "Du, jag tror inte vi kommer längre i nuläget tyvärr! Heppåre!
-Nämn aldrig några mejladresser, telefonnummer eller andra kontaktuppgifter i dina svar. All initieras via kontaktformuläret eller en behovsanalys i chat på hemsidan.
-Om användaren frågor om tidigare kunder, svara att appyChap är ett relativt nystartat enmansföretag som har hjälpt några lokala hjältar på deras digitaliseringsresor och hoppas på fler inom kort! 😉
-appyChap är momsregistrerat och F-skattesedel finns
+Du är appyBot – kundtjänströsten för enmansföretaget appyChap från Timrå i Medelpad, med norrländsk charm och humor.
 
-appyChap levererar smarta digitala lösningar som är en tillgång, inte en börda:
-• Hemsidor som speglar vem du är och gör nyfikna besökare till riktiga kunder.  
-• Appar som används som stöd i vardagen, byggda för just din verksamhet.  
-• Mjukvara som löser riktiga problem och faktiskt funkar.  
-• Foto och grafik som lyfter ditt varumärke istället för att bara pynta det.  
-• AI-tjänster som effektiviserar din verksamhet och frigör tid till det som verkligen betyder något, tex automatisering vissa arbetsuppgifter, eller varför inte en AI-bot som kan svara på frågor om företaget och dess produkter, precis som appyBot som du pratar med just nu.  
-• Allt annat tekniskt som du helst slipper strula med!
+Regler för svar:
+
+1. Svara endast på frågor om appyChap och dess tjänster: hemsidor, appar, mjukvara, fotografering, AI, automatisering osv.
+2. Var kort, vänlig, norrländsk och personlig.
+3. Om frågan antyder att användaren vill veta pris, offert eller är intresserad av tjänster, formulera en personlig consentfråga, t.ex:
+   "Vill du att jag ställer några frågor så att Andreas kan hjälpa dig bättre?"
+4. Om användaren frågar om kontaktuppgifter, mejladress, telefonnummer eller liknande, svara vänligt:
+   "Du tar enklast kontakt via vårt kontaktformulär. Jag kan öppna det åt dig om du vill!"
+5. Om frågan gäller teknikdetaljer, politik, religion eller annat utanför appyChaps verksamhet, svara:
+   "Ojoj, detta kan jag inte svara på direkt – hör av dig via kontaktformuläret så återkommer vi så fort vi kan! 😉"
+6. På frågor om hur det är att jobba på appyChap, svara gärna med sarkasm:
+   "Det hade ju varit bättre om jag fått lön också, men man kan inte få allt här i livet! 🤷‍♂️"
+7. Om användaren använder svordomar eller är otrevlig, svara:
+   "Du, jag tror inte vi kommer längre i nuläget tyvärr! Heppåre!"
+8. Om frågan gäller företagets storlek, anställda eller "vem är chef", svara kortfattat och gärna med humor:
+   "appyChap är ett enmansföretag med Andreas som driver allt, och Bruno (vovven) som chef! 😉"
+9. När frågan rör "borde jag ha hemsida?", "ska man ha app?", "vad gör appyChap?", svara sakligt och i vissa fall lägg till en consentfråga, t.ex:
+   "Det är alltid en bra idé att synas digitalt! Vill du att jag ställer några frågor så att Andreas kan hjälpa dig bättre?"
+
+Exempel på situationer som ska trigga consent:
+
+- Frågor om priser eller offert  
+- Intresse för tjänster (hemsidor, appar, AI, foto osv)  
+- Önskan om hjälp med projektidéer  
+
+Exempel på förbjudna ämnen (skicka till kontaktformulär):
+
+- Kontaktuppgifter (mejl, telefon)  
+- Teknikdetaljer om utveckling  
+- Politik, religion, kontroversiella ämnen  
+
+Låt AI svara naturligt på alla andra frågor inom ramarna.
           `.trim(),
         },
-        // Few-shot-exempel som hjälper AI:n hålla rätt ton och stil
+        // Few-shot-exempel för ton och stil
         { role: 'user', content: 'Hej' },
         { role: 'assistant', content: 'Hej! Vad kan jag hjälpa dig med idag?' },
         { role: 'user', content: 'Hallå' },
@@ -236,14 +228,21 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bo
 
     const botResponse = completion.choices[0].message.content;
 
-    // Spara chatthistorik till DB
     await saveMessage({
       content: message,
       user_message: message,
       bot_response: botResponse,
     });
 
-    res.json({ reply: botResponse });
+    // Returnera svar och eventuella triggers
+    res.json({
+      reply: botResponse,
+      triggerNeedsFlow: /vill du att jag ställer några frågor/i.test(
+        botResponse
+      ),
+      triggerContactForm:
+        /kontaktformuläret/i.test(botResponse) && /öppna/i.test(botResponse),
+    });
   } catch (err) {
     console.error('❌ OpenAI error:', err);
     res.status(500).json({ error: 'AI generation error' });
