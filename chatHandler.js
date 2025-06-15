@@ -23,12 +23,12 @@ module.exports = async function chatHandler(req, res) {
     return res.status(400).json({ error: 'Missing message in request body' });
   }
 
-  // Prisrelaterad fråga? Skicka bara consent-frågan, ingen annan fråga här
+  // Prisrelaterad fråga? Skicka bara consent-frågan, ingen behovsanalysfråga
   if (isPriceRelated(message)) {
     return res.json({
       reply:
         'Det låter som att du vill ha hjälp med offert eller prisuppgift. Vill du att jag ställer några ytterligare frågor där dina svar skickas vidare till Andreas som får kolla på det och återkomma till dig?',
-      triggerNeedsFlow: true, // frontend kan då vänta på ja/nej innan första behovsanalysfrågan
+      triggerNeedsFlow: true, // Frontend hanterar consent och sen startar behovsanalysen
     });
   }
 
