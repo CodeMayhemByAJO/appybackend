@@ -3,25 +3,18 @@ const { OpenAI } = require('openai');
 
 console.log('[chatHandler] modul laddad!');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Enkel in-memory sessions-hantering (byt till riktig DB i produktion)
+// --- In-memory sessions (byt till DB i produktion) ---
 const sessionStates = {};
-
-// Hjälpfunktioner för sessionsstatus
-function getSessionState(sessionId) {
-  if (!sessionStates[sessionId]) {
-    sessionStates[sessionId] = {
-      consentRequested: false,
-      consentDenied: false,
-    };
+function getSessionState(id) {
+  if (!sessionStates[id]) {
+    sessionStates[id] = { consentRequested: false, consentDenied: false };
   }
-  return sessionStates[sessionId];
+  return sessionStates[id];
 }
 
-// Nyckelord
+// --- Nyckelords-funktioner ---
 const priceKeywords = ['pris', 'kostar', 'offert', 'beställa', 'köpa'];
 const serviceInterestKeywords = [
   'app',
@@ -33,54 +26,42 @@ const serviceInterestKeywords = [
   'software',
   'ai',
   'bot',
-  'teknikstrul',
   'automatisering',
   'digitalisering',
 ];
 const helpKeywords = [
-  'kan du hjälpa mig',
+  'kan du hjälpa',
   'hjälp mig',
+  'behöver hjälp',
   'kan ni hjälpa',
   'hjälp',
-  'behöver hjälp',
-  'kan du hjälpa',
-  'kan ni hjälpa mig',
 ];
 
-function isPriceRelated(msg) {
+function isPrice(msg) {
   return priceKeywords.some((k) => msg.includes(k));
 }
-function isServiceInterest(msg) {
+function isService(msg) {
   return serviceInterestKeywords.some((k) => msg.includes(k));
 }
-function isHelpRequest(msg) {
+function isHelp(msg) {
   return helpKeywords.some((k) => msg.includes(k));
 }
-function isPositiveConsent(msg) {
-  return /^(ja|japp|jajjemen|absolut|visst|självklart|okej|kör på|yes?)\b/i.test(
-    msg
-  );
+function isYes(msg) {
+  return /^(ja|japp|visst|okej|absolut|självklart)\b/i.test(msg);
 }
-function isNegativeConsent(msg) {
-  return /^(nej|nä|nej tack|nope|nädu|icke|absolut inte)\b/i.test(msg);
+function isNo(msg) {
+  return /^(nej|nä|nope|nej tack)\b/i.test(msg);
 }
 
 module.exports = async function chatHandler(req, res) {
   const { message, sessionId } = req.body;
-
-  if (!message || !sessionId) {
+  if (!message || !sessionId)
     return res.status(400).json({ error: 'Missing message or sessionId' });
-  }
-
   const msg = message.toLowerCase();
   const session = getSessionState(sessionId);
 
-  // Hjälp-signal → consent direkt
-  if (
-    isHelpRequest(msg) &&
-    !session.consentRequested &&
-    !session.consentDenied
-  ) {
+  // 1) Hjälp-begäran → direkt consent
+  if (isHelp(msg) && !session.consentRequested && !session.consentDenied) {
     session.consentRequested = true;
     return res.json({
       reply:
@@ -89,32 +70,32 @@ module.exports = async function chatHandler(req, res) {
     });
   }
 
-  // Consent svar
+  // 2) Hantera consent-svar
   if (session.consentRequested) {
-    if (isPositiveConsent(msg)) {
+    if (isYes(msg)) {
       session.consentRequested = false;
       return res.json({
         reply: 'Bra! Då börjar vi med några frågor.',
         startNeedsFlow: true,
       });
-    } else if (isNegativeConsent(msg)) {
+    }
+    if (isNo(msg)) {
       session.consentRequested = false;
       session.consentDenied = true;
       return res.json({
         reply:
           'Inga problem! Du kan alltid kontakta oss via kontaktformuläret om du vill.',
       });
-    } else {
-      return res.json({
-        reply:
-          'Jag förstod inte ditt svar. Säg gärna Ja eller Nej så vi kan gå vidare!',
-      });
     }
+    return res.json({
+      reply:
+        'Jag förstod inte ditt svar. Säg gärna Ja eller Nej så vi kan gå vidare!',
+    });
   }
 
-  // Kontaktuppgifter → kontaktformulär
+  // 3) Kontaktuppgifter → öppna formulär
   if (
-    /mejladress|mailadress|e-post|kontaktuppgifter|adress|telefonnummer|kan jag ringa/i.test(
+    /mejladress|mailadress|e-post|kontaktuppgifter|adress|telefonnummer|ring/i.test(
       msg
     )
   ) {
@@ -125,12 +106,8 @@ module.exports = async function chatHandler(req, res) {
     });
   }
 
-  // Prisrelaterade frågor → consent
-  if (
-    isPriceRelated(msg) &&
-    !session.consentRequested &&
-    !session.consentDenied
-  ) {
+  // 4) Prisfrågor → consent
+  if (isPrice(msg) && !session.consentRequested && !session.consentDenied) {
     session.consentRequested = true;
     return res.json({
       reply:
@@ -139,14 +116,9 @@ module.exports = async function chatHandler(req, res) {
     });
   }
 
-  // Intressefrågor → info-svar utan consent
-  if (
-    isServiceInterest(msg) &&
-    !session.consentRequested &&
-    !session.consentDenied
-  ) {
-    // Exempel: "Är det bra med hemsida?", "Vad gör appyChap?"
-    const directInfoTriggers = [
+  // 5) Tjänsteinteresse → direktinfo eller consent
+  if (isService(msg) && !session.consentRequested && !session.consentDenied) {
+    const directInfo = [
       'fundera på hemsida',
       'ny hemsida',
       'behöver hemsida',
@@ -156,9 +128,10 @@ module.exports = async function chatHandler(req, res) {
       'behöver en app',
       'vill ha en hemsida',
     ];
-    if (directInfoTriggers.some((t) => msg.includes(t))) {
+    if (directInfo.some((t) => msg.includes(t))) {
+      // AI-svar utan consent
       try {
-        const completion = await openai.chat.completions.create({
+        const comp = await openai.chat.completions.create({
           model: 'gpt-3.5-turbo',
           messages: [
             {
@@ -166,26 +139,19 @@ module.exports = async function chatHandler(req, res) {
               content: `
 Du är appyBot – kundtjänströsten för enmansföretaget appyChap från Timrå med norrländsk charm och humor.
 Svarar kort, vänligt och personligt.
-appyChap levererar smarta digitala lösningar:
-• Hemsidor som gör nyfikna besökare till kunder.
-• Appar som stödjer din verksamhet.
-• Mjukvara som löser riktiga problem.
-• Foto och grafik som lyfter varumärket.
-• AI-tjänster som frigör tid.
-Svara utan att trigga consent eller behovsanalys.
-              `.trim(),
+Presenterar appyChaps tjänster utan consent.
+            `.trim(),
             },
             { role: 'user', content: message },
           ],
         });
-        const botResponse = completion.choices[0].message.content;
-        return res.json({ reply: botResponse });
-      } catch (err) {
-        console.error('OpenAI error:', err);
-        return res.status(500).json({ error: 'AI generation error' });
+        return res.json({ reply: comp.choices[0].message.content });
+      } catch (e) {
+        console.error(e);
+        return res.status(500).json({ error: 'AI error' });
       }
     }
-    // Övriga intressefrågor triggar consent
+    // annars consent
     session.consentRequested = true;
     return res.json({
       reply:
@@ -194,9 +160,51 @@ Svara utan att trigga consent eller behovsanalys.
     });
   }
 
-  // Fallback - AI svar
+  // 6) Few-shot-fasta svar
+  const fixed = [
+    {
+      rx: /vem är chef på appychap/i,
+      a: 'Bruno är tillbakalutad chef och styr företaget med en järnhand! 😉 Andreas gör allt annat.',
+    },
+    {
+      rx: /hur många är ni/i,
+      a: 'appyChap är ett enmansföretag med Andreas som driver allt själv, men med Bruno (vovven) som chef! 😉',
+    },
+    {
+      rx: /fotograferar appychap/i,
+      a: 'Absolut! Jag levererar foton och redigering så att de passar perfekt på din nya hemsida. 😉',
+    },
+    {
+      rx: /mitt wifi funkar inte/i,
+      a: 'Ojoj, detta är inget jag kan svara på direkt. Använd kontaktformuläret ovan så återkommer vi så snart vi kan! 😉',
+    },
+    {
+      rx: /var håller ni till/i,
+      a: 'appyChap finns i Timrå i Medelpad. Hör gärna av dig så tar vi en kaffe och diskuterar ert projekt! 😉',
+    },
+    {
+      rx: /är ni bra/i,
+      a: 'Vi är ett relativt nystartat enmansföretag som hjälpt några lokala hjältar på deras digitaliseringsresor – hoppas på fler snart! 😉',
+    },
+    {
+      rx: /har ni haft många kunder/i,
+      a: 'Jag har fått hjälpa ett antal lokala hjältar på deras digitaliseringsresor. Skulle vara kul att hjälpa er också! 😉',
+    },
+  ];
+  for (const f of fixed) {
+    if (f.rx.test(message)) {
+      await saveMessage({
+        content: message,
+        user_message: message,
+        bot_response: f.a,
+      });
+      return res.json({ reply: f.a });
+    }
+  }
+
+  // 7) Fallback AI-svar
   try {
-    const completion = await openai.chat.completions.create({
+    const comp = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
         {
@@ -204,20 +212,23 @@ Svara utan att trigga consent eller behovsanalys.
           content: `
 Du är appyBot – kundtjänströsten för enmansföretaget appyChap från Timrå med norrländsk charm och humor.
 Svarar kort, vänligt och personligt.
-Svarar endast på frågor om appyChap, dess tjänster och verksamhet.
-Om frågan gäller kontaktuppgifter, hänvisa alltid till kontaktformuläret.
-Svarar sarkastiskt på frågor om att jobba på appyChap.
-Blockerar svordomar och otrevliga kommentarer med kort svar.
-Om frågan ligger utanför appyChap, hänvisa till kontaktformuläret.
-          `.trim(),
+Svarar endast om appyChaps tjänster och verksamhet.
+Vid kontaktuppgifter: hänvisa alltid till kontaktformuläret.
+Vid frågor utanför appyChaps scope: hänvisa till kontaktformuläret.
+        `.trim(),
         },
         { role: 'user', content: message },
       ],
     });
-    const botResponse = completion.choices[0].message.content;
-    return res.json({ reply: botResponse });
-  } catch (err) {
-    console.error('OpenAI error:', err);
-    return res.status(500).json({ error: 'AI generation error' });
+    const out = comp.choices[0].message.content;
+    await saveMessage({
+      content: message,
+      user_message: message,
+      bot_response: out,
+    });
+    return res.json({ reply: out });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'AI error' });
   }
 };
