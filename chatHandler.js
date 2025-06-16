@@ -120,7 +120,9 @@ module.exports = async function chatHandler(req, res) {
 
   // 4. Intresse för tjänster → olika beteende beroende på fråga
   if (isServiceInterest(message)) {
-    // Lista fraser som inte ska trigga consent utan få ett AI-svar direkt
+    const lowerMsg = message.toLowerCase();
+
+    // Här definieras frågor som ska ge AI-svar direkt UTAN consent
     const directAnswerTriggers = [
       'fundera på hemsida',
       'ny hemsida',
@@ -128,11 +130,11 @@ module.exports = async function chatHandler(req, res) {
       'vad är en ai-assistent',
       'vad gör appychap',
       'vad är appychap',
+      'varför ska man ha hemsida',
+      'fördelar med hemsida',
     ];
 
-    const lowerMsg = message.toLowerCase();
     if (directAnswerTriggers.some((trigger) => lowerMsg.includes(trigger))) {
-      // Skicka till AI som ger ett positivt informativt svar utan consent
       try {
         const completion = await openai.chat.completions.create({
           model: 'gpt-3.5-turbo',
@@ -169,7 +171,7 @@ Om frågan gäller kontaktuppgifter, hänvisa alltid till kontaktformuläret.
     } else {
       // Övriga tjänstefrågor triggar consentfråga
       const reply =
-        'Är det okej att jag ställer några frågor så att Andreas kan hjälpa dig närmare och återkomma?';
+        'Är det okej att jag ställer några frågor så kan Andreas kolla på det och återkomma?';
       return res.json({ reply, triggerNeedsFlow: true });
     }
   }
