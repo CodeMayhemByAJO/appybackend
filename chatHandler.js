@@ -56,7 +56,7 @@ const fixedAnswers = [
   {
     questionRegex: /mitt wifi funkar inte/i,
     answer:
-      'Ojoj, detta är inget jag kan svara på direkt. Använd kontaktformuläret (Hör av dig) ovan så återkommer vi så snart vi kan!',
+      'Ojoj, detta är inget jag kan svara på direkt. Använd kontaktformuläret så återkommer vi så snart vi kan!',
   },
   {
     questionRegex: /var håller ni till/i,
@@ -78,62 +78,6 @@ const fixedAnswers = [
 // Kontaktuppgifter → öppna kontaktformulär
 const contactInfoRegex =
   /mejladress|mailadress|e-post|kontaktuppgifter|adress|telefonnummer|kan jag ringa/i;
-
-// Flexibel funktion för att avgöra när AI ska ge direkt svar utan consent
-function matchesDirectAnswer(message) {
-  const msg = message.toLowerCase();
-
-  const serviceTopics = [
-    'hemsida',
-    'webbsida',
-    'webbplats',
-    'app',
-    'ai-assistent',
-    'ai bot',
-    'ai-bott',
-    'foto',
-    'fotografering',
-    'mjukvara',
-    'digitalisering',
-  ];
-
-  const interestIndicators = [
-    'fundera',
-    'fundering',
-    'behöver',
-    'behöver kanske',
-    'tänker på',
-    'tänker att',
-    'skulle vilja ha',
-    'vill ha',
-    'kan ni',
-    'vad är',
-    'vad gör',
-    'är det bra',
-    'är det smart',
-    'varför',
-    'fördel',
-    'ny',
-    'kan jag få',
-    'kan jag beställa',
-  ];
-
-  const hasTopic = serviceTopics.some((topic) => msg.includes(topic));
-  const hasInterest = interestIndicators.some((ind) => msg.includes(ind));
-
-  if (hasTopic && hasInterest) return true;
-
-  if (
-    msg.includes('vad gör appychap') ||
-    msg.includes('vad är appychap') ||
-    msg.includes('vad är en ai-assistent') ||
-    msg.includes('vad är ai-assistent') ||
-    msg.includes('vad är en ai bot')
-  )
-    return true;
-
-  return false;
-}
 
 module.exports = async function chatHandler(req, res) {
   console.log('[chatHandler] ny request:', req.method, req.path, req.body);
@@ -176,7 +120,34 @@ module.exports = async function chatHandler(req, res) {
 
   // 4. Intresse för tjänster → antingen direkt AI-svar eller consentfråga beroende på fråga
   if (isServiceInterest(message)) {
-    if (matchesDirectAnswer(message)) {
+    // Wildcard för att ge direkt svar utan consent på frågor som är informativa, ej köpsignal
+    const infoTriggers = [
+      'fundera',
+      'fundering',
+      'behöver kanske',
+      'tänker på',
+      'tänker att',
+      'skulle vilja ha',
+      'vill ha',
+      'kan ni',
+      'vad är',
+      'vad gör',
+      'är det bra',
+      'är det smart',
+      'varför',
+      'fördel',
+      'ny',
+      'kan jag få',
+      'kan jag beställa',
+    ];
+    const msgLower = message.toLowerCase();
+
+    // Kontrollera om frågan är informativ och ska få AI-svar utan consent
+    const hasInfoTrigger = infoTriggers.some((trigger) =>
+      msgLower.includes(trigger)
+    );
+
+    if (hasInfoTrigger) {
       try {
         const completion = await openai.chat.completions.create({
           model: 'gpt-3.5-turbo',
@@ -193,9 +164,7 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bör
 • Foto och grafik som lyfter ditt varumärke istället för att bara pynta det.
 • AI-tjänster som effektiviserar din verksamhet och frigör tid till det som verkligen betyder något, t.ex automatisering av vissa arbetsuppgifter eller AI-bottar som svarar på frågor.
 Svara kort, vänligt och personligt.
-Svara på frågor om appyChap och deras tjänster utan att trigga behovsanalys eller consent, tex vilka jobbar där, hur många jobbar på appyChap, 
-Svara på frågor om appyChap tjänster utan att trigga behovsanalys eller consent. Om tex någon frågar om det är bra att ha en hemsida, app etc, svara att en sådan ifrån appyChap kan verkligen öka medvetenheten kring din verksamhet etc etc.
-På frågor om vilka tjänster appyChap erbjuder, svara att appyChap levererar smarta digitala lösningar skräddarsydda för deras verksamhet och behov. Vid en sådan fråga, kan du lägga till att om dom har några funderingar så kan dom ta kontakt med oss via kontaktformuläret. Inte gå vidare med consent.
+Svarar på frågor om appyChap och deras tjänster utan att trigga behovsanalys eller consent.
 Om frågan gäller kontaktuppgifter, hänvisa alltid till kontaktformuläret.
               `.trim(),
             },
@@ -213,14 +182,15 @@ Om frågan gäller kontaktuppgifter, hänvisa alltid till kontaktformuläret.
         console.error('❌ OpenAI error:', err);
         return res.status(500).json({ error: 'AI generation error' });
       }
-    } else {
-      const reply =
-        'Är det okej att jag ställer några frågor så att Andreas kan hjälpa dig närmare och återkomma?';
-      return res.json({ reply, triggerNeedsFlow: true });
     }
+
+    // Annars trigga consent
+    const consentReply =
+      'Är det okej att jag ställer några frågor så att Andreas kan hjälpa dig närmare och återkomma?';
+    return res.json({ reply: consentReply, triggerNeedsFlow: true });
   }
 
-  // 5. Fallback AI-svar på andra frågor inom ramarna
+  // 5. Fallback - AI svar på andra frågor inom ramarna
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
@@ -235,7 +205,7 @@ Om frågan gäller kontaktuppgifter, hänvisa alltid till kontaktformuläret.
 Svarar sarkastiskt på frågor om att jobba på appyChap.
 Blockerar svordomar och otrevliga kommentarer med kort svar.
 Om frågan ligger utanför appyChap, hänvisa till kontaktformuläret.
-          `.trim(),
+              `.trim(),
         },
         { role: 'user', content: message },
       ],
