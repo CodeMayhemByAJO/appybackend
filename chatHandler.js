@@ -7,10 +7,15 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Nyckelord för prisrelaterade frågor (köpsignaler)
+// Nyckelord för prisrelaterade frågor
 const priceKeywords = ['pris', 'kostar', 'offert', 'beställa', 'köpa'];
+function isPriceRelated(userMessage) {
+  return priceKeywords.some((keyword) =>
+    userMessage.toLowerCase().includes(keyword)
+  );
+}
 
-// Nyckelord för intresse för tjänster (ej nödvändigtvis köp)
+// Nyckelord för intresse för tjänster (ej pris)
 const serviceInterestKeywords = [
   'app',
   'hemsida',
@@ -25,14 +30,6 @@ const serviceInterestKeywords = [
   'automatisering',
   'digitalisering',
 ];
-
-// Funktioner för att kolla om meddelandet är pris- eller tjänste-relaterat
-function isPriceRelated(userMessage) {
-  return priceKeywords.some((keyword) =>
-    userMessage.toLowerCase().includes(keyword)
-  );
-}
-
 function isServiceInterest(userMessage) {
   return serviceInterestKeywords.some((keyword) =>
     userMessage.toLowerCase().includes(keyword)
@@ -78,24 +75,65 @@ const fixedAnswers = [
   },
 ];
 
-// Kontaktinfo regex (alltid öppna formulär)
+// Kontaktuppgifter → öppna kontaktformulär
 const contactInfoRegex =
   /mejladress|mailadress|e-post|kontaktuppgifter|adress|telefonnummer|kan jag ringa/i;
 
-// Lista fraser som ska få direkt informativt AI-svar (ingen consent)
-const directAnswerTriggers = [
-  'bra med hemsida',
-  'behöver hemsida',
-  'fundera på hemsida',
-  'vad är en ai-assistent',
-  'vad gör appychap',
-  'vad är appychap',
-  'vad gör ni',
-  'varför hemsida',
-  'varför app',
-  'vad är en ai-bot',
-  // lägg gärna till fler varianter här som ska svaras direkt
-];
+// Flexibel funktion för att avgöra när AI ska ge direkt svar utan consent
+function matchesDirectAnswer(message) {
+  const msg = message.toLowerCase();
+
+  const serviceTopics = [
+    'hemsida',
+    'webbsida',
+    'webbplats',
+    'app',
+    'ai-assistent',
+    'ai bot',
+    'ai-bott',
+    'foto',
+    'fotografering',
+    'mjukvara',
+    'digitalisering',
+  ];
+
+  const interestIndicators = [
+    'fundera',
+    'fundering',
+    'behöver',
+    'behöver kanske',
+    'tänker på',
+    'tänker att',
+    'skulle vilja ha',
+    'vill ha',
+    'kan ni',
+    'vad är',
+    'vad gör',
+    'är det bra',
+    'är det smart',
+    'varför',
+    'fördel',
+    'ny',
+    'kan jag få',
+    'kan jag beställa',
+  ];
+
+  const hasTopic = serviceTopics.some((topic) => msg.includes(topic));
+  const hasInterest = interestIndicators.some((ind) => msg.includes(ind));
+
+  if (hasTopic && hasInterest) return true;
+
+  if (
+    msg.includes('vad gör appychap') ||
+    msg.includes('vad är appychap') ||
+    msg.includes('vad är en ai-assistent') ||
+    msg.includes('vad är ai-assistent') ||
+    msg.includes('vad är en ai bot')
+  )
+    return true;
+
+  return false;
+}
 
 module.exports = async function chatHandler(req, res) {
   console.log('[chatHandler] ny request:', req.method, req.path, req.body);
@@ -105,7 +143,7 @@ module.exports = async function chatHandler(req, res) {
     return res.status(400).json({ error: 'Missing message in request body' });
   }
 
-  // 1. Kolla fasta svar först
+  // 1. Fasta svar först
   for (const item of fixedAnswers) {
     if (item.questionRegex.test(message)) {
       await saveMessage({
@@ -117,7 +155,7 @@ module.exports = async function chatHandler(req, res) {
     }
   }
 
-  // 2. Kolla kontaktinfofrågor → öppna formulär direkt
+  // 2. Kontaktuppgifter → öppna kontaktformulär direkt
   if (contactInfoRegex.test(message)) {
     const reply =
       'Du tar enklast kontakt via vårt kontaktformulär. Jag kan öppna det åt dig om du vill!';
@@ -129,16 +167,23 @@ module.exports = async function chatHandler(req, res) {
     return res.json({ reply, openContactForm: true });
   }
 
-  // 3. Kolla om fråga matchar direkt informativa triggers → AI svar utan consent
-  const lowerMsg = message.toLowerCase();
-  if (directAnswerTriggers.some((trigger) => lowerMsg.includes(trigger))) {
-    try {
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: `
+  // 3. Prisrelaterade frågor → trigga consent-fråga
+  if (isPriceRelated(message)) {
+    const reply =
+      'Det låter som att du vill ha hjälp med offert eller prisuppgift. Vill du att jag ställer några frågor så att Andreas kan hjälpa dig bättre?';
+    return res.json({ reply, triggerNeedsFlow: true });
+  }
+
+  // 4. Intresse för tjänster → antingen direkt AI-svar eller consentfråga beroende på fråga
+  if (isServiceInterest(message)) {
+    if (matchesDirectAnswer(message)) {
+      try {
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: `
 Du är appyBot – kundtjänströsten för enmansföretaget appyChap från Timrå med norrländsk charm och humor.
 appyChap levererar smarta digitala lösningar som är en tillgång, inte en börda:
 • Hemsidor som speglar vem du är och gör nyfikna besökare till riktiga kunder.
@@ -149,39 +194,30 @@ appyChap levererar smarta digitala lösningar som är en tillgång, inte en bör
 Svara kort, vänligt och personligt.
 Svara på frågor om appyChap och deras tjänster utan att trigga behovsanalys eller consent.
 Om frågan gäller kontaktuppgifter, hänvisa alltid till kontaktformuläret.
-            `.trim(),
-          },
-          { role: 'user', content: message },
-        ],
-      });
-      const botResponse = completion.choices[0].message.content;
-      await saveMessage({
-        content: message,
-        user_message: message,
-        bot_response: botResponse,
-      });
-      return res.json({ reply: botResponse });
-    } catch (err) {
-      console.error('❌ OpenAI error:', err);
-      return res.status(500).json({ error: 'AI generation error' });
+              `.trim(),
+            },
+            { role: 'user', content: message },
+          ],
+        });
+        const botResponse = completion.choices[0].message.content;
+        await saveMessage({
+          content: message,
+          user_message: message,
+          bot_response: botResponse,
+        });
+        return res.json({ reply: botResponse });
+      } catch (err) {
+        console.error('❌ OpenAI error:', err);
+        return res.status(500).json({ error: 'AI generation error' });
+      }
+    } else {
+      const reply =
+        'Är det okej att jag ställer några frågor så att Andreas kan hjälpa dig närmare och återkomma?';
+      return res.json({ reply, triggerNeedsFlow: true });
     }
   }
 
-  // 4. Prisrelaterade frågor → trigga consent
-  if (isPriceRelated(message)) {
-    const reply =
-      'Det låter som att du vill ha hjälp med offert eller prisuppgift. Vill du att jag ställer några frågor så att Andreas kan hjälpa dig bättre?';
-    return res.json({ reply, triggerNeedsFlow: true });
-  }
-
-  // 5. Tjänsteintresse som inte matchar direkt svar → trigga consent
-  if (isServiceInterest(message)) {
-    const reply =
-      'Är det okej att jag ställer några frågor så att Andreas kan hjälpa dig närmare och återkomma?';
-    return res.json({ reply, triggerNeedsFlow: true });
-  }
-
-  // 6. Övriga fallback-svar från AI inom ramarna
+  // 5. Fallback AI-svar på andra frågor inom ramarna
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
