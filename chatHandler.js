@@ -26,8 +26,6 @@ const getSession = (id) => {
 /* Nyckelord */
 const priceKW = /(pris|kostar|offert|beställa|köpa)/i;
 const helpKW = /(kan (du|ni) hjälpa|hjälp mig|behöver hjälp)/i;
-const serviceKW =
-  /(app|hemsida|webbsida|fotografering|foto|ai|bot|automatisering|digitalisering)/i;
 const contactKW =
   /(mejladress|mailadress|e-post|kontaktuppgifter|adress|telefonnummer|kan jag ringa)/i;
 
@@ -120,23 +118,7 @@ module.exports = async (req, res) => {
     });
   }
 
-  // 6. Tjänsteintresse
-  if (serviceKW.test(msg)) {
-    if (S.consentDenied) {
-      const info =
-        'Absolut! En hemsida eller app från appyChap hjälper er att synas och frigör tid. När ni vill gå vidare är det bara att skicka en rad via kontaktformuläret 😊';
-      await saveMessage({ user_message: message, bot_response: info });
-      return res.json({ reply: info });
-    }
-    S.consentRequested = true;
-    return res.json({
-      reply:
-        'Är det okej att jag ställer några frågor om detta och skickar till Andreas så får han titta på det och återkomma?',
-      triggerNeedsFlow: true,
-    });
-  }
-
-  // 7. Fallback → OpenAI
+  // 6. Fallback → OpenAI med prompt.md
   try {
     const gpt = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
